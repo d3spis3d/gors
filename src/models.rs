@@ -73,7 +73,7 @@ impl Ord for Epic {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, Eq)]
 pub struct Story {
     pub name: String,
     pub description: String,
@@ -87,6 +87,18 @@ impl Story {
             description,
             status: Status::Open,
         }
+    }
+}
+
+impl PartialOrd for Story {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for Story {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.name.cmp(&other.name)
     }
 }
 

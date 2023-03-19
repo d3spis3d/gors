@@ -44,7 +44,23 @@ impl Page for HomePage {
     }
 
     fn handle_input(&self, input: &str) -> Result<Option<Action>> {
-        todo!() // match against the user input and return the corresponding action. If the user input was invalid return None.
+        match input {
+            "q" => Ok(Some(Action::Exit)),
+            "c" => Ok(Some(Action::CreateEpic)),
+            id_str => {
+                let id: u32 = match id_str.parse().ok() {
+                    Some(id) => id,
+                    None => return Ok(None),
+                };
+                let dbstate = self.db.read_db()?;
+
+                if dbstate.epics.contains_key(&id) {
+                    return Ok(Some(Action::NavigateToEpicDetail { epic_id: id }));
+                }
+
+                Ok(None)
+            }
+        }
     }
 }
 
@@ -78,8 +94,16 @@ impl Page for EpicDetail {
         println!("     id     |               name               |      status      ");
 
         let stories = &db_state.stories;
-
-        // TODO: print out stories using get_column_string(). also make sure the stories are sorted by id
+        let _prints: Vec<()> = sorted(stories)
+            .map(|(k, v)| {
+                println!(
+                    "{}|{}|{}",
+                    get_column_string(&k.to_string(), 12),
+                    get_column_string(&v.name, 34),
+                    get_column_string(&v.status.to_string(), 18)
+                )
+            })
+            .collect();
 
         println!();
         println!();
@@ -90,7 +114,39 @@ impl Page for EpicDetail {
     }
 
     fn handle_input(&self, input: &str) -> Result<Option<Action>> {
-        todo!() // match against the user input and return the corresponding action. If the user input was invalid return None.
+        match input {
+            "p" => Ok(Some(Action::NavigateToPreviousPage)),
+            "u" => Ok(Some(Action::UpdateEpicStatus {
+                epic_id: self.epic_id,
+            })),
+            "d" => Ok(Some(Action::DeleteEpic {
+                epic_id: self.epic_id,
+            })),
+            "c" => Ok(Some(Action::CreateStory {
+                epic_id: self.epic_id,
+            })),
+            id_str => {
+                let id: u32 = match id_str.parse().ok() {
+                    Some(id) => id,
+                    None => return Ok(None),
+                };
+                let dbstate = self.db.read_db()?;
+
+                let epic = dbstate
+                    .epics
+                    .get(&self.epic_id)
+                    .ok_or(anyhow!("Epic not found: {}", self.epic_id))?;
+
+                if epic.stories.contains(&id) {
+                    return Ok(Some(Action::NavigateToStoryDetail {
+                        epic_id: self.epic_id,
+                        story_id: id,
+                    }));
+                }
+
+                Ok(None)
+            }
+        }
     }
 }
 
@@ -111,7 +167,13 @@ impl Page for StoryDetail {
         println!("------------------------------ STORY ------------------------------");
         println!("  id  |     name     |         description         |    status    ");
 
-        // TODO: print out story details using get_column_string()
+        println!(
+            "{}|{}|{}|{}",
+            get_column_string(&self.story_id.to_string(), 6),
+            get_column_string(&story.name, 14),
+            get_column_string(&story.description, 29),
+            get_column_string(&story.status.to_string(), 14)
+        );
 
         println!();
         println!();
@@ -122,7 +184,17 @@ impl Page for StoryDetail {
     }
 
     fn handle_input(&self, input: &str) -> Result<Option<Action>> {
-        todo!() // match against the user input and return the corresponding action. If the user input was invalid return None.
+        match input {
+            "p" => Ok(Some(Action::NavigateToPreviousPage)),
+            "u" => Ok(Some(Action::UpdateStoryStatus {
+                story_id: self.story_id,
+            })),
+            "d" => Ok(Some(Action::DeleteStory {
+                epic_id: self.epic_id,
+                story_id: self.story_id,
+            })),
+            _ => Ok(None),
+        }
     }
 }
 
