@@ -50,16 +50,13 @@ impl Page for HomePage {
             "q" => Ok(Some(Action::Exit)),
             "c" => Ok(Some(Action::CreateEpic)),
             id_str => {
-                let id: u32 = match id_str.parse().ok() {
-                    Some(id) => id,
-                    None => return Ok(None),
-                };
-                let dbstate = self.db.read_db()?;
+                if let Ok(epic_id) = id_str.parse::<u32>() {
+                    let dbstate = self.db.read_db()?;
 
-                if dbstate.epics.contains_key(&id) {
-                    return Ok(Some(Action::NavigateToEpicDetail { epic_id: id }));
+                    if dbstate.epics.contains_key(&epic_id) {
+                        return Ok(Some(Action::NavigateToEpicDetail { epic_id }));
+                    }
                 }
-
                 Ok(None)
             }
         }
@@ -100,14 +97,17 @@ impl Page for EpicDetail {
         println!("     id     |               name               |      status      ");
 
         let stories = &db_state.stories;
-        let _prints: Vec<()> = sorted(stories)
-            .map(|(k, v)| {
-                println!(
-                    "{}|{}|{}",
-                    get_column_string(&k.to_string(), 12),
-                    get_column_string(&v.name, 34),
-                    get_column_string(&v.status.to_string(), 18)
-                )
+        let _prints: Vec<()> = sorted(epic.stories.iter())
+            .map(|story_id| {
+                stories.get(story_id).and_then(|story| {
+                    println!(
+                        "{}|{}|{}",
+                        get_column_string(&story_id.to_string(), 12),
+                        get_column_string(&story.name, 34),
+                        get_column_string(&story.status.to_string(), 18)
+                    );
+                    Some(())
+                });
             })
             .collect();
 

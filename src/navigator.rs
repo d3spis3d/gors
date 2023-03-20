@@ -63,6 +63,7 @@ impl Navigator {
                     self.db
                         .delete_epic(epic_id)
                         .with_context(|| format!("Failed to delete epic {}", epic_id))?;
+                    self.pages.pop();
                 }
             }
             Action::CreateStory { epic_id } => {
@@ -86,6 +87,7 @@ impl Navigator {
                     self.db.delete_story(epic_id, story_id).with_context(|| {
                         format!("Failed to delete story {} for epic {}", story_id, epic_id)
                     })?;
+                    self.pages.pop();
                 }
             }
             Action::Exit => {
