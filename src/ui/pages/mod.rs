@@ -12,7 +12,7 @@ mod page_helpers;
 use page_helpers::*;
 
 pub trait Page {
-    fn draw_page(&self) -> Result<()>;
+    fn draw_page(&self) -> Result<String>;
     fn handle_input(&self, input: &str) -> Result<Option<Action>>;
     fn as_any(&self) -> &dyn Any;
 }
@@ -21,28 +21,26 @@ pub struct HomePage {
     pub db: Rc<JiraDatabase>,
 }
 impl Page for HomePage {
-    fn draw_page(&self) -> Result<()> {
-        println!("----------------------------- EPICS -----------------------------");
-        println!("     id     |               name               |      status      ");
+    fn draw_page(&self) -> Result<String> {
+        let mut draw =
+            String::from("----------------------------- EPICS -----------------------------\n");
+        draw.push_str("     id     |               name               |      status      \n");
 
         let dbstate = self.db.read_db()?;
         let _prints: Vec<()> = sorted(dbstate.epics.iter())
             .map(|(k, v)| {
-                println!(
-                    "{}|{}|{}",
+                draw.push_str(&format!(
+                    "{}|{}|{}\n",
                     get_column_string(&k.to_string(), 12),
                     get_column_string(&v.name, 34),
                     get_column_string(&v.status.to_string(), 18)
-                )
+                ));
             })
             .collect();
 
-        println!();
-        println!();
+        draw.push_str("\n[q] quit | [c] create epic | [:id:] navigate to epic\n");
 
-        println!("[q] quit | [c] create epic | [:id:] navigate to epic");
-
-        Ok(())
+        Ok(draw)
     }
 
     fn handle_input(&self, input: &str) -> Result<Option<Action>> {
@@ -73,50 +71,46 @@ pub struct EpicDetail {
 }
 
 impl Page for EpicDetail {
-    fn draw_page(&self) -> Result<()> {
+    fn draw_page(&self) -> Result<String> {
         let db_state = self.db.read_db()?;
         let epic = db_state
             .epics
             .get(&self.epic_id)
             .ok_or_else(|| anyhow!("could not find epic!"))?;
 
-        println!("------------------------------ EPIC ------------------------------");
-        println!("  id  |     name     |         description         |    status    ");
+        let mut draw =
+            String::from("------------------------------ EPIC ------------------------------\n");
+        draw.push_str("  id  |     name     |         description         |    status    \n");
 
-        println!(
-            "{}|{}|{}|{}",
+        draw.push_str(&format!(
+            "{}|{}|{}|{}\n",
             get_column_string(&self.epic_id.to_string(), 6),
             get_column_string(&epic.name, 14),
             get_column_string(&epic.description, 29),
             get_column_string(&epic.status.to_string(), 14)
-        );
+        ));
 
-        println!();
-
-        println!("---------------------------- STORIES ----------------------------");
-        println!("     id     |               name               |      status      ");
+        draw.push_str("---------------------------- STORIES ----------------------------\n");
+        draw.push_str("     id     |               name               |      status      \n");
 
         let stories = &db_state.stories;
         let _prints: Vec<()> = sorted(epic.stories.iter())
             .map(|story_id| {
                 stories.get(story_id).and_then(|story| {
-                    println!(
-                        "{}|{}|{}",
+                    draw.push_str(&format!(
+                        "{}|{}|{}\n",
                         get_column_string(&story_id.to_string(), 12),
                         get_column_string(&story.name, 34),
                         get_column_string(&story.status.to_string(), 18)
-                    );
+                    ));
                     Some(())
                 });
             })
             .collect();
 
-        println!();
-        println!();
+        draw.push_str("\n[p] previous | [u] update epic | [d] delete epic | [c] create story | [:id:] navigate to story\n");
 
-        println!("[p] previous | [u] update epic | [d] delete epic | [c] create story | [:id:] navigate to story");
-
-        Ok(())
+        Ok(draw)
     }
 
     fn handle_input(&self, input: &str) -> Result<Option<Action>> {
@@ -167,30 +161,29 @@ pub struct StoryDetail {
 }
 
 impl Page for StoryDetail {
-    fn draw_page(&self) -> Result<()> {
+    fn draw_page(&self) -> Result<String> {
         let db_state = self.db.read_db()?;
         let story = db_state
             .stories
             .get(&self.story_id)
             .ok_or_else(|| anyhow!("could not find story!"))?;
 
-        println!("------------------------------ STORY ------------------------------");
-        println!("  id  |     name     |         description         |    status    ");
+        let mut draw =
+            String::from("------------------------------ STORY ------------------------------\n");
 
-        println!(
-            "{}|{}|{}|{}",
+        draw.push_str("  id  |     name     |         description         |    status    \n");
+
+        draw.push_str(&format!(
+            "{}|{}|{}|{}\n\n",
             get_column_string(&self.story_id.to_string(), 6),
             get_column_string(&story.name, 14),
             get_column_string(&story.description, 29),
             get_column_string(&story.status.to_string(), 14)
-        );
+        ));
 
-        println!();
-        println!();
+        draw.push_str("[p] previous | [u] update story | [d] delete story\n");
 
-        println!("[p] previous | [u] update story | [d] delete story");
-
-        Ok(())
+        Ok(draw)
     }
 
     fn handle_input(&self, input: &str) -> Result<Option<Action>> {
@@ -228,7 +221,9 @@ mod tests {
             });
 
             let page = HomePage { db };
-            assert_eq!(page.draw_page().is_ok(), true);
+            let draw = page.draw_page();
+            assert_eq!(draw.is_ok(), true);
+            insta::assert_yaml_snapshot!(draw.unwrap());
         }
 
         #[test]
@@ -293,7 +288,9 @@ mod tests {
                 .unwrap();
 
             let page = EpicDetail { epic_id, db };
-            assert_eq!(page.draw_page().is_ok(), true);
+            let draw = page.draw_page();
+            assert_eq!(draw.is_ok(), true);
+            insta::assert_yaml_snapshot!(draw.unwrap());
         }
 
         #[test]
@@ -400,7 +397,9 @@ mod tests {
                 story_id,
                 db,
             };
-            assert_eq!(page.draw_page().is_ok(), true);
+            let draw = page.draw_page();
+            assert_eq!(draw.is_ok(), true);
+            insta::assert_yaml_snapshot!(draw.unwrap());
         }
 
         #[test]

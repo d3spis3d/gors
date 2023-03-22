@@ -1,0 +1,6 @@
+---
+source: src/ui/pages/mod.rs
+expression: draw.unwrap()
+---
+"----------------------------- EPICS -----------------------------\n     id     |               name               |      status      \n\n[q] quit | [c] create epic | [:id:] navigate to epic\n"
+

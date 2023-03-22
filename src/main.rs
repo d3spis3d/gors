@@ -30,12 +30,18 @@ fn main() {
             None => break,
         };
         // 2. render page
-        if let Err(error) = current_page.draw_page() {
-            println!(
-                "Error rendering page: {}\nPress any key to continue...",
-                error
-            );
-            wait_for_key_press();
+        match current_page.draw_page() {
+            Err(error) => {
+                println!(
+                    "Error rendering page: {}\nPress any key to continue...",
+                    error
+                );
+                wait_for_key_press();
+                continue;
+            }
+            Ok(draw) => {
+                print!("{}", draw);
+            }
         };
         // 3. get user input
         let input = get_user_input();

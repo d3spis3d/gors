@@ -1,0 +1,6 @@
+---
+source: src/ui/pages/mod.rs
+expression: draw.unwrap()
+---
+"------------------------------ STORY ------------------------------\n  id  |     name     |         description         |    status    \n2     |              |                             |OPEN          \n\n[p] previous | [u] update story | [d] delete story\n"
+
